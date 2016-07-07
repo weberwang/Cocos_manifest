@@ -5,7 +5,7 @@ import json
 import shutil
 import zipfile
 import sys
-import lxml.objectify as objectify
+import xml.etree.cElementTree as et
 
 # 需要更新的最小svn版本号
 if len(sys.argv) > 1:
@@ -32,9 +32,9 @@ mainfestAddData = {}  # 更新添加的字段
 
 def svnInfo():
     svnInfoStr = os.popen("svn info --xml").read()
-    svnInfoXml = objectify.fromstring(svnInfoStr.encode("utf-8"))
+    svnInfoXml = et.fromstring(svnInfoStr.encode("utf-8"))
     global relativeurl
-    relativeurl = svnInfoXml.entry.find("relative-url").text
+    relativeurl = svnInfoXml.getchildren()[0].find('relative-url').text
     relativeurl = relativeurl.replace("^", "")
     pass
 
@@ -52,7 +52,7 @@ def packageFiles():
 def findGreaterFiles(path):
     filesSet = set()
     logStr = os.popen(svnCommand.format(path, svnVersion)).read()
-    logXml = objectify.fromstring(logStr.encode('utf-8'))
+    logXml = et.fromstring(logStr.encode('utf-8'))
     logs = logXml.getchildren()
     for log in logs:
         paths = log.findall('paths')
@@ -141,9 +141,13 @@ def checkFileModule(filePath):
             mainfestAddData[module] = {}
         if fileextendName == '.js':
             # 代码文件
-            if filePath.find('src/game/' + module) >= 0:
-                mainfestAddData[module][filePath] = (newFileData)
-            else:
+            game = False
+            for module in modules:
+                if filePath.find('src/game/' + module) >= 0:
+                    mainfestAddData[module][filePath] = (newFileData)
+                    game = True
+                    break
+            if not game:
                 mainfestAddData['lobby'][filePath] = (newFileData)
         else:
             # 资源文件
