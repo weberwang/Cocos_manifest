@@ -107,11 +107,20 @@ def compilejs(files):
             shutil.copyfile(os.path.join(projectPath, 'manifest', 'project.manifest'), manifestFile)
         with open(manifestFile, "r+") as manifest:
             manifestData = manifest.read()
-            asset = '"assets" : '
-            assetIndex = manifestData.find(asset)
-            seek = assetIndex + len(asset)
-            manifest.seek(seek)
-            manifest.write(json.dumps(mainfestAddData[module]) + '}')
+            manifestData = json.loads(manifestData)
+            asset = manifestData.get('assets')
+            for deleteFile in deleteFiles:
+                fileextendName = deleteFile[deleteFile.rfind("."):]
+                if fileextendName == '.js':
+                    deleteFile.replace('.js', '.jsc')
+                if asset.get(deleteFile):
+                    del asset[deleteFile]
+            asset.update(mainfestAddData[module])
+            # asset = '"assets" : '
+            # assetIndex = manifestData.find(asset)
+            # seek = assetIndex + len(asset)
+            manifest.seek(0)
+            manifest.write(json.dumps(manifestData))
             pass
     zip = zipfile.ZipFile(updatedir + '.zip', 'w', zipfile.ZIP_DEFLATED)
     for root, dirs, files in os.walk(updatedir):
